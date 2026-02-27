@@ -23,19 +23,31 @@ if [[ -n "$ENV_FILE" ]]; then
     # Skip comments and blank lines
     line="${line#export }"
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-    # Extract variable name
+    # Extract variable name and value from the file itself
     key="${line%%=*}"
     key="${key// /}"
     [[ -z "$key" ]] && continue
-    ENV_ARGS+=(-e "$key=${!key}")
+    value="${line#*=}"
+    ENV_ARGS+=(-e "$key=$value")
   done < "$ENV_FILE"
 fi
+
+# Pass ANTHROPIC_API_KEY from host environment if not already included
+if [[ -n "$ANTHROPIC_API_KEY" ]] && ! printf '%s\n' "${ENV_ARGS[@]}" | grep -q "ANTHROPIC_API_KEY="; then
+  ENV_ARGS+=(-e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
+fi
+
+# Ensure ~/.claude.json persistence file exists on host
+# (Docker bind-mount requires a file; if absent it creates a directory instead)
+touch "$HOME/.claude-sandbox.json"
 
 docker run -it --rm \
   -v "$(pwd):/workspace" \
   -v "$HOME/Documents/Code/_references:/references:ro" \
   -v "claude-sandbox-config:/home/claude/.claude" \
+  -v "claude-sandbox-keyrings:/home/claude/.local/share/keyrings" \
+  -v "$HOME/.claude-sandbox.json:/home/claude/.claude.json" \
   "${ENV_ARGS[@]}" \
   -w /workspace \
   claude-sandbox \
-  claude --dangerously-skip-permissions
+  /home/claude/entrypoint.sh

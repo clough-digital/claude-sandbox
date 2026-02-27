@@ -1,5 +1,5 @@
 FROM ubuntu:24.04
-RUN apt-get update && apt-get install -y curl git zsh python3 python3-pip && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl git zsh python3 python3-pip libsecret-1-0 gnome-keyring dbus-x11 && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -s /bin/zsh claude
 
 # Git wrapper: block remote-mutating and structural operations
@@ -13,8 +13,15 @@ RUN pip3 install playwright --break-system-packages && \
     playwright install-deps chromium && \
     rm -rf /var/lib/apt/lists/*
 
+COPY --chown=claude:claude container-files/entrypoint.sh /home/claude/entrypoint.sh
+RUN chmod +x /home/claude/entrypoint.sh
+
 USER claude
 WORKDIR /workspace
+
+# Pre-create keyrings dir as claude so the named volume mount inherits correct ownership
+RUN mkdir -p /home/claude/.local/share/keyrings
+
 RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/home/claude/.local/bin:$PATH"
 
