@@ -1,5 +1,15 @@
 #!/bin/bash
 
+ALLOW_GIT_WRITES=false
+REMAINING_ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "--allow-git-writes" ]]; then
+    ALLOW_GIT_WRITES=true
+  else
+    REMAINING_ARGS+=("$arg")
+  fi
+done
+
 ENV_ARGS=()
 
 # Require a linked git worktree
@@ -46,13 +56,22 @@ fi
 # (Docker bind-mount requires a file; if absent it creates a directory instead)
 touch "$HOME/.claude-sandbox.json"
 
+if [[ "$ALLOW_GIT_WRITES" == true ]]; then
+  GIT_MOUNT="$MAIN_GIT_DIR:$MAIN_GIT_DIR"
+  GIT_WRITES_ENV="-e GIT_WRITES_ENABLED=1"
+else
+  GIT_MOUNT="$MAIN_GIT_DIR:$MAIN_GIT_DIR:ro"
+  GIT_WRITES_ENV="-e GIT_WRITES_ENABLED=0"
+fi
+
 docker run -it --rm \
   -v "$(pwd):/workspace" \
-  -v "$MAIN_GIT_DIR:$MAIN_GIT_DIR:ro" \
+  -v "$GIT_MOUNT" \
   -v "$HOME/Documents/Code/_references:/references:ro" \
   -v "claude-sandbox-config:/home/claude/.claude" \
   -v "claude-sandbox-keyrings:/home/claude/.local/share/keyrings" \
   -v "$HOME/.claude-sandbox.json:/home/claude/.claude.json" \
+  $GIT_WRITES_ENV \
   "${ENV_ARGS[@]}" \
   -w /workspace \
   claude-sandbox \
