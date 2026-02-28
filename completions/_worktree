@@ -1,0 +1,12 @@
+#compdef worktree
+
+_worktree() {
+  local -a branches
+  branches=(${(f)"$(git branch --format='%(refname:short)' 2>/dev/null)"})
+
+  _arguments \
+    '(--remove)--remove[remove existing worktree]: :($branches)' \
+    '1: :($branches)'
+}
+
+_worktree "$@"

@@ -3,7 +3,14 @@ case "$1" in
   push)
     echo "git push is disabled in this sandbox" >&2; exit 1 ;;
   worktree)
-    echo "git worktree is disabled in this sandbox" >&2; exit 1 ;;
+    case "$2" in
+      list|repair)
+        ;; # allow — read-only
+      add|remove|move|lock|unlock|prune)
+        echo "git worktree $2 is disabled in this sandbox" >&2; exit 1 ;;
+      *)
+        echo "git worktree $2 is disabled in this sandbox" >&2; exit 1 ;;
+    esac ;;
   gc|prune)
     echo "git $1 is disabled in this sandbox" >&2; exit 1 ;;
   config)

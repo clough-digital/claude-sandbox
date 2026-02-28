@@ -9,6 +9,11 @@ if [[ -z "$GIT_TOPLEVEL" || ! -f "$GIT_TOPLEVEL/.git" ]]; then
   exit 1
 fi
 
+# Extract the main repo's .git directory so git inside the container can
+# resolve the worktree reference (the .git file points to an absolute host path)
+GITDIR=$(sed 's/^gitdir: //' "$GIT_TOPLEVEL/.git")
+MAIN_GIT_DIR=$(echo "$GITDIR" | sed 's|/\.git/worktrees/.*|/.git|')
+
 # Find .env or .envrc in current directory
 ENV_FILE=""
 if [[ -f .env ]]; then
@@ -43,6 +48,7 @@ touch "$HOME/.claude-sandbox.json"
 
 docker run -it --rm \
   -v "$(pwd):/workspace" \
+  -v "$MAIN_GIT_DIR:$MAIN_GIT_DIR:ro" \
   -v "$HOME/Documents/Code/_references:/references:ro" \
   -v "claude-sandbox-config:/home/claude/.claude" \
   -v "claude-sandbox-keyrings:/home/claude/.local/share/keyrings" \
