@@ -2,12 +2,12 @@
 case "$1" in
   push)
     echo "git push is disabled in this sandbox" >&2; exit 1 ;;
+  fetch|pull|clone)
+    echo "git $1 is disabled in this sandbox (no network egress from git)" >&2; exit 1 ;;
   worktree)
     case "$2" in
       list|repair)
         ;; # allow — read-only
-      add|remove|move|lock|unlock|prune)
-        echo "git worktree $2 is disabled in this sandbox" >&2; exit 1 ;;
       *)
         echo "git worktree $2 is disabled in this sandbox" >&2; exit 1 ;;
     esac ;;
@@ -41,5 +41,19 @@ case "$1" in
     fi ;;
   switch)
     echo "git switch is disabled in this sandbox" >&2; exit 1 ;;
+  reset)
+    for arg in "$@"; do
+      if [[ "$arg" == "--hard" ]]; then
+        echo "git reset --hard is disabled in this sandbox" >&2; exit 1
+      fi
+    done ;;
+  clean)
+    for arg in "$@"; do
+      if [[ "$arg" == "-f"* || "$arg" == "--force" ]]; then
+        echo "git clean -f is disabled in this sandbox" >&2; exit 1
+      fi
+    done ;;
+  update-ref|am|cherry-pick|filter-branch|replace)
+    echo "git $1 is disabled in this sandbox" >&2; exit 1 ;;
 esac
 exec /usr/bin/git "$@"

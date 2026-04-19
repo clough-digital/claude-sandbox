@@ -6,6 +6,8 @@
 - Do not run `git commit` without explicit user confirmation
 - Do not install system packages with apt/brew
 - Do not make outbound network requests except to the Anthropic API
+- Do not use `git fetch`, `git pull`, or `git clone` (blocked by git-wrapper)
+- Do not use `git reset --hard` or `git clean -f` (both blocked)
 
 ## Git File Operations
 
@@ -37,6 +39,29 @@ If you need to stage, commit, or resolve merge conflicts, ask the user to relaun
 ./claude-sandbox.sh --allow-git-writes
 ```
 
+## Available Claude Code Flags
+
+The sandbox is launched with `claude --dangerously-skip-permissions` by default. Useful flags the user can pass at launch:
+
+- `--allow-git-writes` — enables git add/commit inside the container
+- `--with-skills` — mounts the user's `~/.claude/skills/` read-only into the container
+- `--safe` — removes `--dangerously-skip-permissions`; permissions prompts become active
+- `-n "name"` — sets a display name for this session (v2.1.76+)
+- `--bare -p "prompt"` — non-interactive headless mode; skips hooks/plugins/skill walks (v2.1.81+)
+- `--from-pr <number>` — pre-loads a GitHub PR's diff into context
+
+## Notes on Effort and Models
+
+- Use `/model` to switch between Opus 4.7, Sonnet 4.6, and Haiku 4.5
+- Use `/effort` to set effort level: `low`, `medium`, `high`, `xhigh` (xhigh = Opus 4.7 only)
+- The `max` effort level was removed in v2.1.72; use `high` or `xhigh` instead
+- `/vim` and `/tag` commands were removed in v2.1.92; use `/config` for editor mode
+
+## Memory
+
+Auto-memory is stored at `/home/claude/.claude/memory/` and persists across sessions in the
+`claude-sandbox-config` named volume. Memory accumulates across sessions automatically.
+
 ## References
 
-Refer to reference guides in `/references` as needed
+Refer to reference guides in `/references` as needed.

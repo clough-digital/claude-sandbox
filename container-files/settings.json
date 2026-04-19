@@ -1,0 +1,47 @@
+{
+  "showThinkingSummaries": true,
+  "autoScrollEnabled": true,
+  "disableDeepLinkRegistration": true,
+  "autoMemoryDirectory": "/home/claude/.claude/memory",
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git worktree remove:*)",
+      "Bash(git worktree move:*)",
+      "Bash(git switch:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -f:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(git clean -fdx:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git clone:*)",
+      "Bash(sudo:*)",
+      "Bash(apt*:*)",
+      "Bash(brew:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "if": "Bash(curl *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/claude/hooks/block-non-anthropic-http.sh"
+          }
+        ]
+      },
+      {
+        "if": "Bash(wget *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/claude/hooks/block-non-anthropic-http.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

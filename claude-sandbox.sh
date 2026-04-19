@@ -1,21 +1,37 @@
 #!/bin/bash
+# Launch a sandboxed Claude Code session inside the Docker container.
+# Must be run from a git worktree (not the main working tree).
+#
+# Flags:
+#   --allow-git-writes   Mount the main .git directory read-write (needed for git add/commit).
+#   --with-skills        Mount ~/.claude/skills read-only into the container.
+#   --safe               Launch without --dangerously-skip-permissions (uses permission prompts).
+#   All other flags      Passed through to `claude` inside the container.
+#                        E.g.: claude-sandbox --bare -p "do X"
+#                              claude-sandbox -n "my-session"
+#                              claude-sandbox --from-pr 123
 
 ALLOW_GIT_WRITES=false
+WITH_SKILLS=false
+SAFE_MODE=false
 REMAINING_ARGS=()
+
 for arg in "$@"; do
-  if [[ "$arg" == "--allow-git-writes" ]]; then
-    ALLOW_GIT_WRITES=true
-  else
-    REMAINING_ARGS+=("$arg")
-  fi
+  case "$arg" in
+    --allow-git-writes) ALLOW_GIT_WRITES=true ;;
+    --with-skills)      WITH_SKILLS=true ;;
+    --safe)             SAFE_MODE=true ;;
+    *)                  REMAINING_ARGS+=("$arg") ;;
+  esac
 done
 
 ENV_ARGS=()
+EXTRA_MOUNTS=()
 
 # Require a linked git worktree
 GIT_TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null)
 if [[ -z "$GIT_TOPLEVEL" || ! -f "$GIT_TOPLEVEL/.git" ]]; then
-  echo "Error: sandbox.sh must be run from a git worktree (use worktree.sh to create one)"
+  echo "Error: claude-sandbox must be run from a git worktree (use worktree.sh to create one)" >&2
   exit 1
 fi
 
@@ -35,14 +51,15 @@ fi
 # Build -e flags from env file variables
 if [[ -n "$ENV_FILE" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Skip comments and blank lines
     line="${line#export }"
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-    # Extract variable name and value from the file itself
     key="${line%%=*}"
     key="${key// /}"
     [[ -z "$key" ]] && continue
     value="${line#*=}"
+    # Strip surrounding double or single quotes from values
+    [[ "$value" =~ ^\"(.*)\"$ ]] && value="${BASH_REMATCH[1]}"
+    [[ "$value" =~ ^\'(.*)\'$ ]] && value="${BASH_REMATCH[1]}"
     ENV_ARGS+=(-e "$key=$value")
   done < "$ENV_FILE"
 fi
@@ -64,15 +81,32 @@ else
   GIT_WRITES_ENV="-e GIT_WRITES_ENABLED=0"
 fi
 
+if [[ "$WITH_SKILLS" == true ]]; then
+  EXTRA_MOUNTS+=(-v "$HOME/.claude/skills:/home/claude/.claude/skills:ro")
+fi
+
+if [[ "$SAFE_MODE" == true ]]; then
+  ENTRYPOINT_ARGS=(--safe)
+else
+  ENTRYPOINT_ARGS=()
+fi
+
 docker run -it --rm \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --pids-limit 512 \
+  --memory 8g --memory-swap 8g \
+  --tmpfs /tmp:rw,nosuid,nodev,size=1g \
   -v "$(pwd):/workspace" \
   -v "$GIT_MOUNT" \
   -v "$HOME/Documents/Code/_references:/references:ro" \
   -v "claude-sandbox-config:/home/claude/.claude" \
+  -v "claude-sandbox-local:/home/claude/.local" \
   -v "claude-sandbox-keyrings:/home/claude/.local/share/keyrings" \
   -v "$HOME/.claude-sandbox.json:/home/claude/.claude.json" \
+  "${EXTRA_MOUNTS[@]}" \
   $GIT_WRITES_ENV \
   "${ENV_ARGS[@]}" \
   -w /workspace \
   claude-sandbox \
-  /home/claude/entrypoint.sh
+  /home/claude/entrypoint.sh "${ENTRYPOINT_ARGS[@]}" "${REMAINING_ARGS[@]}"
