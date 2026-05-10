@@ -15,7 +15,9 @@
       "Bash(xargs ls:*)",
       "Bash(git *)",
       "WebFetch(domain:claude.ai)",
-      "WebFetch(domain:downloads.claude.ai)"
+      "WebFetch(domain:downloads.claude.ai)",
+      "Bash(bash -n /Users/jeremy/Documents/Code/claude-sandbox/claude-sandbox.sh)",
+      "Bash(bash -n /Users/jeremy/Documents/Code/claude-sandbox/container-files/entrypoint.sh)"
     ]
   }
 }

@@ -6,6 +6,8 @@
 #   --allow-git-writes   Mount the main .git directory read-write (needed for git add/commit).
 #   --with-skills        Mount ~/.claude/skills read-only into the container.
 #   --safe               Launch without --dangerously-skip-permissions (uses permission prompts).
+#   --update             Run `claude update` synchronously before starting; new version takes
+#                        effect this session. Resets the daily background-update timer.
 #   All other flags      Passed through to `claude` inside the container.
 #                        E.g.: claude-sandbox --bare -p "do X"
 #                              claude-sandbox -n "my-session"
@@ -14,6 +16,7 @@
 ALLOW_GIT_WRITES=false
 WITH_SKILLS=false
 SAFE_MODE=false
+FORCE_UPDATE=false
 REMAINING_ARGS=()
 
 for arg in "$@"; do
@@ -21,6 +24,7 @@ for arg in "$@"; do
     --allow-git-writes) ALLOW_GIT_WRITES=true ;;
     --with-skills)      WITH_SKILLS=true ;;
     --safe)             SAFE_MODE=true ;;
+    --update)           FORCE_UPDATE=true ;;
     *)                  REMAINING_ARGS+=("$arg") ;;
   esac
 done
@@ -89,6 +93,10 @@ if [[ "$SAFE_MODE" == true ]]; then
   ENTRYPOINT_ARGS=(--safe)
 else
   ENTRYPOINT_ARGS=()
+fi
+
+if [[ "$FORCE_UPDATE" == true ]]; then
+  ENTRYPOINT_ARGS+=(--update)
 fi
 
 docker run -it --rm \

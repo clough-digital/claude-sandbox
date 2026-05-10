@@ -56,8 +56,8 @@ RUN mkdir -p /home/claude/.local/share/keyrings
 # Placed before Claude Code install so Claude updates don't force browser re-downloads.
 RUN npx playwright install chromium
 
-# 9. Claude Code CLI — pinned version; bump CLAUDE_CODE_VERSION to upgrade
-ARG CLAUDE_CODE_VERSION=2.1.110
+# 9. Claude Code CLI — version injected by build.sh (fetches latest from GitHub); fallback ARG used only for direct docker build calls
+ARG CLAUDE_CODE_VERSION=2.1.138
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "${CLAUDE_CODE_VERSION}" && \
     /home/claude/.local/bin/claude --version
 ENV PATH="/home/claude/.local/bin:$PATH"

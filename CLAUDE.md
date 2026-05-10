@@ -9,10 +9,10 @@ Docker-based sandbox environment for running Claude Code (`claude --dangerously-
 ## Build and Run
 
 ```bash
-# Build the Docker image (uses default Claude Code version from Dockerfile ARG)
+# Build the Docker image (fetches latest Claude Code version from npm at build time)
 ./build.sh
 
-# Build with a specific Claude Code version
+# Build with a specific Claude Code version (pins instead of fetching latest)
 ./build.sh --version 2.1.111
 
 # Launch a sandboxed Claude session (mounts current directory as /workspace)
@@ -26,6 +26,9 @@ Docker-based sandbox environment for running Claude Code (`claude --dangerously-
 
 # Launch in safe mode (keeps permission prompts — no --dangerously-skip-permissions)
 ./claude-sandbox.sh --safe
+
+# Force a synchronous update check before starting (new version takes effect this session)
+./claude-sandbox.sh --update
 
 # Pass arbitrary flags through to claude (e.g. headless mode, named session)
 ./claude-sandbox.sh --bare -p "summarize the workspace"
@@ -64,11 +67,16 @@ across container restarts (rather than being discarded with each `--rm` containe
 `/home/claude/.local/` directory is mounted as the named volume `claude-sandbox-local`:
 
 - **First run ever**: Docker populates the empty volume with the image's baseline Claude Code
-  install (pinned to `ARG CLAUDE_CODE_VERSION` in the Dockerfile).
+  install (the version fetched from GitHub at `./build.sh` time, or the `ARG CLAUDE_CODE_VERSION`
+  fallback if built directly with `docker build`).
 - **Subsequent runs**: Claude's updater writes new versions to
   `/home/claude/.local/share/claude/versions/<new>/` and updates the
   `/home/claude/.local/bin/claude` symlink. Both paths live in the volume, so updates carry
   over to the next session.
+
+### Forcing an update this session
+
+Run `./claude-sandbox.sh --update` to check for and apply updates synchronously before Claude starts — the new version is in effect for the session you're launching (unlike the daily background updater, which only takes effect on the *next* launch). Running `--update` also resets the 24h throttle so the background updater stays quiet for the rest of the day.
 
 ### Forcing a version re-baseline
 
@@ -76,7 +84,7 @@ If you want to reset to the Dockerfile's pinned version (or recover from a broke
 
 ```bash
 docker volume rm claude-sandbox-local
-./build.sh --version 2.1.111   # optional: bump the pin
+./build.sh                     # rebuilds with latest version from GitHub
 ./claude-sandbox.sh            # next launch repopulates the volume from the image
 ```
 
