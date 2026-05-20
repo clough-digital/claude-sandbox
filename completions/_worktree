@@ -1,12 +1,27 @@
 #compdef worktree
 
 _worktree() {
-  local -a branches
-  branches=(${(f)"$(git branch --format='%(refname:short)' 2>/dev/null)"})
+  local repo_root prefix line wtpath
+  local -a branches worktrees
 
-  _arguments \
-    '(--remove)--remove[remove existing worktree]: :($branches)' \
-    '1: :($branches)'
+  if (( CURRENT >= 3 )) && [[ ${words[2]} == --remove ]]; then
+    # completing the argument to --remove: only worktrees this script manages
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    if [[ -n $repo_root ]]; then
+      prefix="${repo_root:h}/${repo_root:t}-"
+      while IFS= read -r line; do
+        [[ $line == 'worktree '* ]] || continue
+        wtpath=${line#worktree }
+        [[ $wtpath == "${prefix}"* ]] && worktrees+=("${wtpath#"$prefix"}")
+      done < <(git worktree list --porcelain 2>/dev/null)
+    fi
+    compadd -a worktrees
+  else
+    # first argument: a branch name, or the --remove flag
+    branches=(${(f)"$(git for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null)"})
+    compadd -- --remove
+    compadd -a branches
+  fi
 }
 
 _worktree "$@"

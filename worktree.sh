@@ -21,7 +21,7 @@ if [[ "$1" == "--remove" ]]; then
   [[ $# -ne 2 ]] && usage
   BRANCH_NAME="$2"
   WORKTREE_PATH="$REPO_PARENT/$REPO_NAME-$BRANCH_NAME"
-  if ! git worktree list --porcelain | grep -q "^worktree $WORKTREE_PATH"; then
+  if ! git worktree list --porcelain | grep -Fxq "worktree $WORKTREE_PATH"; then
     echo "Error: no worktree found at $WORKTREE_PATH"
     exit 1
   fi
@@ -36,7 +36,7 @@ BRANCH_NAME="$1"
 WORKTREE_PATH="$REPO_PARENT/$REPO_NAME-$BRANCH_NAME"
 
 # Check if worktree already exists
-if git worktree list --porcelain | grep -q "^worktree $WORKTREE_PATH"; then
+if git worktree list --porcelain | grep -Fxq "worktree $WORKTREE_PATH"; then
   echo "Worktree already exists at $WORKTREE_PATH"
   exit 0
 fi
@@ -62,5 +62,3 @@ if [[ -n "$ENV_FILE" ]]; then
 fi
 
 echo "Worktree created at $WORKTREE_PATH"
-
-cd "$WORKTREE_PATH"
