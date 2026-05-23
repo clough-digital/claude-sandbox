@@ -86,7 +86,15 @@ else
 fi
 
 if [[ "$WITH_SKILLS" == true ]]; then
-  EXTRA_MOUNTS+=(-v "$HOME/.claude/skills:/home/claude/.claude/skills:ro")
+  if [[ -d "$HOME/.claude/skills" ]]; then
+    for skill in "$HOME/.claude/skills"/*; do
+      [[ -e "$skill" ]] || continue
+      name=$(basename "$skill")
+      target=$(realpath "$skill")
+      [[ -d "$target" ]] || continue
+      EXTRA_MOUNTS+=(-v "$target:/home/claude/.claude/skills/$name:ro")
+    done
+  fi
 fi
 
 if [[ "$SAFE_MODE" == true ]]; then
