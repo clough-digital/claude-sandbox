@@ -81,3 +81,4 @@ ENV CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0 \
 # 10. Claude instructions and settings — most volatile, always last
 COPY --chown=claude:claude container-files/CLAUDE-root.md /home/claude/.claude/CLAUDE.md
 COPY --chown=claude:claude container-files/settings.json /home/claude/.claude/settings.json
+COPY --chown=claude:claude container-files/tmux.conf /home/claude/.tmux.conf

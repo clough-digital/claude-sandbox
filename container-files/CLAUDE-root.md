@@ -50,6 +50,33 @@ The sandbox is launched with `claude --dangerously-skip-permissions` by default.
 - `--bare -p "prompt"` — non-interactive headless mode; skips hooks/plugins/skill walks (v2.1.81+)
 - `--from-pr <number>` — pre-loads a GitHub PR's diff into context
 
+## tmux
+
+Use tmux for any process that would otherwise block the agent loop or needs to outlive a single tool call: dev servers, file watchers, `tail -f`, long builds, REPLs (`python3`, `node`, `psql`), and multi-step interactive CLIs.
+
+**Core pattern:**
+
+```bash
+# Start detached
+tmux new-session -d -s <name> '<command>'
+
+# Inspect output (last 200 lines; omit -S for current screen only)
+tmux capture-pane -p -t <name> -S -200
+
+# Send input to a running session
+tmux send-keys -t <name> '<text>' Enter
+
+# List sessions / clean up
+tmux ls
+tmux kill-session -t <name>
+```
+
+**Pick descriptive session names** (`devserver`, `pytest-watch`, `pyrepl`) so multiple concurrent sessions stay legible.
+
+**Don't use tmux for one-shot commands.** For `npm test` or `ls`, plain Bash is fine. Tmux is for things that would otherwise hang the conversation or need to outlive a single tool call.
+
+**Persistence caveat:** the container runs with `docker run --rm`, so the tmux server dies when the Claude session ends. Tmux is for *in-session* concurrency, not for resuming work across sandbox launches.
+
 ## Notes on Effort and Models
 
 - Use `/model` to switch between Opus 4.7, Sonnet 4.6, and Haiku 4.5

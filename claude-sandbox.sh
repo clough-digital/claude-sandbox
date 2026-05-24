@@ -13,6 +13,9 @@
 #                        existing worktree (worktree.sh computes the parent path from
 #                        `git rev-parse --show-toplevel`, so running from <repo>-foo would
 #                        create <repo>-foo-NAME instead of <repo>-NAME).
+#   --tmux               Not supported — Claude Code's --tmux creates a git worktree, which
+#                        conflicts with the sandbox model. Use manual tmux inside the container
+#                        instead (see ## tmux in the container's CLAUDE.md).
 #   All other flags      Passed through to `claude` inside the container.
 #                        E.g.: claude-sandbox --bare -p "do X"
 #                              claude-sandbox -n "my-session"
@@ -66,6 +69,17 @@ while [[ $# -gt 0 ]]; do
       fi
       WORKTREE_NAME="$2"
       shift
+      ;;
+    --tmux)
+      # Claude Code's --tmux requires creating a git worktree, which the sandbox blocks.
+      # Even without the block, git rejects a second worktree for an already-checked-out branch.
+      # Use manual tmux inside the container instead — see the ## tmux section in CLAUDE.md.
+      echo "Error: --tmux is not supported in the sandbox." >&2
+      echo "  Claude Code's --tmux creates a git worktree, which conflicts with the sandbox model." >&2
+      echo "  Instead, start long-running processes with tmux inside the container:" >&2
+      echo "    tmux new-session -d -s devserver 'npm run dev'" >&2
+      echo "    tmux capture-pane -p -t devserver -S -200" >&2
+      exit 1
       ;;
     *)                  REMAINING_ARGS+=("$1") ;;
   esac

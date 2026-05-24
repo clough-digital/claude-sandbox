@@ -15,6 +15,10 @@ Docker-based sandbox environment for running Claude Code (`claude --dangerously-
 # Build with a specific Claude Code version (pins instead of fetching latest)
 ./build.sh --version 2.1.111
 
+# Wipe the claude-sandbox-config volume and rebuild (use after editing CLAUDE-root.md or settings.json
+# so the new baked-in files aren't masked by the persisted volume; auth credentials are preserved)
+./build.sh --clean
+
 # Launch a sandboxed Claude session (mounts current directory as /workspace)
 ./claude-sandbox.sh
 
@@ -124,8 +128,9 @@ subset of the above even if the git-wrapper is bypassed.
 ## Architecture
 
 - **Dockerfile** — Ubuntu 24.04 image. Creates an unprivileged `claude` user, installs Node 22
-  LTS, Playwright (Node only), GitHub CLI, a pinned Claude Code CLI version, and bakes in a
-  `settings.json` with 2026 security defaults and hooks.
+  LTS, Playwright (Node only), GitHub CLI, tmux, a pinned Claude Code CLI version, and bakes in a
+  `settings.json` with 2026 security defaults and hooks. `CLAUDE-root.md` instructs Claude to use
+  tmux for long-running processes (dev servers, watchers, REPLs) rather than blocking the agent loop.
 - **build.sh** — Builds the `claude-sandbox` Docker image. Accepts `--version <v>` to override
   the Claude Code version.
 - **git-wrapper.sh** — The custom git security wrapper installed at `/usr/local/bin/git`.

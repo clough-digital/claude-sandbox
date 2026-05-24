@@ -1,7 +1,7 @@
 {
   "showThinkingSummaries": true,
   "autoScrollEnabled": true,
-  "disableDeepLinkRegistration": true,
+  "disableDeepLinkRegistration": "disable",
   "autoMemoryDirectory": "/home/claude/.claude/memory",
   "permissions": {
     "deny": [
