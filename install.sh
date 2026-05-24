@@ -14,12 +14,14 @@ ln -sf "$REPO_DIR/worktree.sh"       "$BIN_DIR/worktree"
 # Install zsh completion
 COMPLETION_DIR="$HOME/.local/share/zsh/completions"
 mkdir -p "$COMPLETION_DIR"
-ln -sf "$REPO_DIR/completions/_worktree" "$COMPLETION_DIR/_worktree"
+ln -sf "$REPO_DIR/completions/_worktree"        "$COMPLETION_DIR/_worktree"
+ln -sf "$REPO_DIR/completions/_claude-sandbox" "$COMPLETION_DIR/_claude-sandbox"
 
 echo "Installed:"
 echo "  $BIN_DIR/claude-sandbox -> $REPO_DIR/claude-sandbox.sh"
 echo "  $BIN_DIR/worktree       -> $REPO_DIR/worktree.sh"
-echo "  $COMPLETION_DIR/_worktree -> $REPO_DIR/completions/_worktree"
+echo "  $COMPLETION_DIR/_worktree        -> $REPO_DIR/completions/_worktree"
+echo "  $COMPLETION_DIR/_claude-sandbox  -> $REPO_DIR/completions/_claude-sandbox"
 echo
 echo "Ensure $BIN_DIR is in your PATH."
 echo

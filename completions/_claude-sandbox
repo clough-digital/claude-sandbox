@@ -1,0 +1,23 @@
+#compdef claude-sandbox
+
+_claude_sandbox() {
+  local -a flags branches
+
+  if [[ ${words[CURRENT-1]} == --worktree ]]; then
+    branches=(${(f)"$(git for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null)"})
+    compadd -a branches
+  else
+    flags=(
+      --allow-git-writes
+      --with-skills
+      --safe
+      --update
+      --worktree
+      --help
+      -h
+    )
+    compadd -a flags
+  fi
+}
+
+_claude_sandbox "$@"

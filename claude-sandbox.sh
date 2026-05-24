@@ -8,29 +8,94 @@
 #   --safe               Launch without --dangerously-skip-permissions (uses permission prompts).
 #   --update             Run `claude update` synchronously before starting; new version takes
 #                        effect this session. Resets the daily background-update timer.
+#   --worktree NAME      Create (or reuse) a linked worktree via worktree.sh, then launch the
+#                        sandbox inside it. Run from the main repo root, not from inside an
+#                        existing worktree (worktree.sh computes the parent path from
+#                        `git rev-parse --show-toplevel`, so running from <repo>-foo would
+#                        create <repo>-foo-NAME instead of <repo>-NAME).
 #   All other flags      Passed through to `claude` inside the container.
 #                        E.g.: claude-sandbox --bare -p "do X"
 #                              claude-sandbox -n "my-session"
 #                              claude-sandbox --from-pr 123
 
+usage() {
+  cat <<'EOF'
+Usage: claude-sandbox [OPTIONS] [-- CLAUDE_FLAGS...]
+
+Launch a sandboxed Claude Code session inside a Docker container.
+Must be run from a git worktree (not the main working tree).
+
+Options:
+  --allow-git-writes   Mount the main .git directory read-write (needed for git add/commit).
+  --with-skills        Mount ~/.claude/skills read-only into the container.
+  --safe               Launch without --dangerously-skip-permissions (uses permission prompts).
+  --update             Run `claude update` synchronously before starting; new version takes
+                       effect this session. Resets the daily background-update timer.
+  --worktree NAME      Create (or reuse) a linked worktree via worktree.sh, then launch the
+                       sandbox inside it. Run from the main repo root, not from inside an
+                       existing worktree.
+  -h, --help           Show this help and exit.
+
+All other flags are passed through to `claude` inside the container.
+  Examples:
+    claude-sandbox --bare -p "do X"
+    claude-sandbox -n "my-session"
+    claude-sandbox --from-pr 123
+EOF
+  exit 0
+}
+
 ALLOW_GIT_WRITES=false
 WITH_SKILLS=false
 SAFE_MODE=false
 FORCE_UPDATE=false
+WORKTREE_NAME=""
 REMAINING_ARGS=()
 
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --allow-git-writes) ALLOW_GIT_WRITES=true ;;
     --with-skills)      WITH_SKILLS=true ;;
     --safe)             SAFE_MODE=true ;;
     --update)           FORCE_UPDATE=true ;;
-    *)                  REMAINING_ARGS+=("$arg") ;;
+    -h|--help)          usage ;;
+    --worktree)
+      if [[ -z "$2" || "$2" == -* ]]; then
+        echo "Error: --worktree requires a name (e.g. --worktree feature-x)" >&2
+        exit 1
+      fi
+      WORKTREE_NAME="$2"
+      shift
+      ;;
+    *)                  REMAINING_ARGS+=("$1") ;;
   esac
+  shift
 done
 
 ENV_ARGS=()
 EXTRA_MOUNTS=()
+
+if [[ -n "$WORKTREE_NAME" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+  if [[ -x "$SCRIPT_DIR/worktree.sh" ]]; then
+    WORKTREE_CMD=("$SCRIPT_DIR/worktree.sh")
+  elif command -v worktree >/dev/null 2>&1; then
+    WORKTREE_CMD=(worktree)
+  else
+    echo "Error: cannot locate worktree.sh (run install.sh, or invoke claude-sandbox.sh directly from the repo)" >&2
+    exit 1
+  fi
+
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [[ -z "$REPO_ROOT" ]]; then
+    echo "Error: --worktree must be run from inside a git repository" >&2
+    exit 1
+  fi
+  WORKTREE_PATH="$(dirname "$REPO_ROOT")/$(basename "$REPO_ROOT")-$WORKTREE_NAME"
+
+  "${WORKTREE_CMD[@]}" "$WORKTREE_NAME" || exit 1
+  cd "$WORKTREE_PATH" || exit 1
+fi
 
 # Require a linked git worktree
 GIT_TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null)
